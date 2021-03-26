@@ -1,4 +1,4 @@
-# Excel-HTML-Tools-Public
+# Excel-HTML-Tools
 VBA-scripts for rich-text HTML-Export from Excel
 
 VBA-code for *fast* transformation of Excel-cells with rich text formatting (RTF) into html.
