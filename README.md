@@ -22,3 +22,6 @@ The XSL-Transformation used can be seen in action [here](https://xsltfiddle.libe
   If this is a problem for you:
   * either only apply the transformation to individual cells and combine them into a unified table yourself, but make sure to untangle conflicting class-styles from the different cell-transformations (which will still receive the same class-name)
   * or adjust the XSLT to no longer remove these CSS-entries from the stylesheet but include checks to insert the negating style-entries into the cell's style-attribute (i.e. `<td style="font-weight:normal"><b>bold</b> and not so bold text combined</td>`. If this is a requirement for you, feel free to open an Issue, and I'll try to help out.
+
+## but what about Excel's html-Export
+By all means use Excel's html-Export if you need the full file exported as html and do not need to programmatically access the html from VBA. This tool will help you when you need quick html-code from individual ranges without going through the export which also separates css and html.
