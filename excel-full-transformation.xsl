@@ -145,21 +145,31 @@
 <xsl:template match="node()">
     <xsl:choose>
         <xsl:when test="name(.)='Font'">
-            <xsl:element name="span">
-                <xsl:attribute name="style">
-                    <xsl:if test="@html:Color">color:<xsl:value-of select="@html:Color"/>;</xsl:if>
-                    <xsl:if test="@html:Size">font-size:<xsl:value-of select="@html:Size"/>pt;</xsl:if>
-                    <xsl:if test="@html:Face">font-family:<xsl:value-of select="@html:Face"/>
-                    <xsl:choose>
-                        <xsl:when test="@x:Family='Swiss'">,sans-serif</xsl:when>
-                        <xsl:when test="@x:Family='Roman'">,serif</xsl:when>
-                        <xsl:when test="@x:Family='Modern'">,monospace</xsl:when>
-                        <xsl:when test="@x:Family='Script'">,cursive</xsl:when>
-                        <xsl:when test="@x:Family='Decorative'">,fantasy</xsl:when>
-                    </xsl:choose>;</xsl:if>
-                </xsl:attribute>
-                <xsl:apply-templates/>
-            </xsl:element>   
+            <xsl:choose>
+                <xsl:when test="not(@*)">
+                    <xsl:apply-templates/>
+                </xsl:when>
+                <xsl:when test="(not(@html:Face) and not(@html:Size) and (@html:Color) and (@html:Color = key('style', 'Default')/ss:Font/@ss:Color))">
+                    <xsl:apply-templates/>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:element name="span">
+                        <xsl:attribute name="style">
+                            <xsl:if test="((@html:Color) and (not(@html:Color = key('style', 'Default')/ss:Font/@ss:Color)))">color:<xsl:value-of select="@html:Color"/>;</xsl:if>
+                            <xsl:if test="@html:Size">font-size:<xsl:value-of select="@html:Size"/>pt;</xsl:if>
+                            <xsl:if test="@html:Face">font-family:<xsl:value-of select="@html:Face"/>
+                            <xsl:choose>
+                                <xsl:when test="@x:Family='Swiss'">,sans-serif</xsl:when>
+                                <xsl:when test="@x:Family='Roman'">,serif</xsl:when>
+                                <xsl:when test="@x:Family='Modern'">,monospace</xsl:when>
+                                <xsl:when test="@x:Family='Script'">,cursive</xsl:when>
+                                <xsl:when test="@x:Family='Decorative'">,fantasy</xsl:when>
+                            </xsl:choose>;</xsl:if>
+                        </xsl:attribute>
+                        <xsl:apply-templates/>
+                    </xsl:element>
+                </xsl:otherwise>
+            </xsl:choose>
         </xsl:when>
         <xsl:when test="name(.)='U'">
             <xsl:choose>
