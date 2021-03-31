@@ -14,55 +14,81 @@
     <xsl:for-each select="ss:Workbook/ss:Styles/ss:Style">
         <xsl:choose>
             <xsl:when test="@ss:ID='Default'">
-    .default {<xsl:if test="ss:Font/@ss:Italic=1">
-        font-style:italic;</xsl:if>
-                <xsl:if test="ss:Font/@ss:Bold=1">
-        font-weight: bold;</xsl:if>
-                <xsl:if test="ss:Font/@ss:Color">
-        color:<xsl:value-of select="ss:Font/@ss:Color"/>;</xsl:if>
-                <xsl:if test="ss:Font/@ss:StrikeThrough=1">
-        text-decoration:line-through;</xsl:if>
-                <xsl:if test="ss:Font/@ss:Underline='Single'">
-        text-decoration:underline;</xsl:if>
-                <xsl:if test="ss:Font/@ss:Underline='Double'">
+    .default</xsl:when>
+            <xsl:otherwise>
+    .<xsl:value-of select="@ss:ID"/>
+                <xsl:if  test="@ss:Name">, .<xsl:value-of select="translate(@ss:Name,translate(@ss:Name,'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',''),'')" /></xsl:if>
+            </xsl:otherwise>
+        </xsl:choose>
+	{<!-- if there is a font-element, but a specific sub-element (other than font-related attributes) are missing, there is NO inheritance from parent style -->
+		<xsl:if test="@ss:Parent">
+			<xsl:if test="not(key('cell', @ss:ID)//html:I) and not(ss:Font/@ss:Italic) and key('style', @ss:Parent)/ss:Font/@ss:Italic=1">
+		font-style:normal;</xsl:if>
+			<xsl:if test="not(key('cell', @ss:ID)//html:B) and not(ss:Font/@ss:Bold) and key('style', @ss:Parent)/ss:Font/@ss:Bold=1">
+		font-weight:normal;</xsl:if>
+			<xsl:if test="not(key('cell', @ss:ID)//html:Font/@html:Color) and not(ss:Font/@ss:Color) and key('style', @ss:Parent)/ss:Font/@ss:Color"><!-- strictly color:unset;, i.e. NO inheritance from parent style or default style; but the desired result can be better achieved by inheritance from the default-style. Note that this is only relevant here. Color is the only attribute with an unpredictable value that can be unset via the front-end -->
+		color:<xsl:value-of select="key('style', 'Default')/ss:Font/@ss:Color"/>;</xsl:if>
+			<xsl:if test="(not(key('cell', @ss:ID)//html:S) and not(ss:Font/@ss:StrikeThrough) and key('style', @ss:Parent)/ss:Font/@ss:StrikeThrough=1) and ((not(key('cell', @ss:ID)//html:U) and not(ss:Font/@ss:Underline) and key('style', @ss:Parent)/ss:Font/@ss:Underline))">
+		text-decoration:initial;</xsl:if>
+			<xsl:if test="(not(key('cell', @ss:ID)//html:Sub) and not(key('cell', @ss:ID)//html:Sup)) and not(ss:Font/@ss:VerticalAlign) and key('style', @ss:Parent)/ss:Font/@ss:VerticalAlign">
+		vertical-align:baseline;</xsl:if>
+		</xsl:if>
+        <xsl:if test="ss:Font/@ss:Italic=1">
+            <xsl:if test="not(key('cell', @ss:ID)//html:I)">font-style:italic;</xsl:if>
+        </xsl:if>
+        <xsl:if test="ss:Font/@ss:Bold=1">
+            <xsl:if test="not(key('cell', @ss:ID)//html:B)">font-weight: bold;</xsl:if>
+        </xsl:if>
+        <xsl:if test="ss:Font/@ss:Color">
+            <xsl:if test="not(key('cell', @ss:ID)//html:Font/@html:Color=ss:Font/@ss:Color)">color:<xsl:value-of select="ss:Font/@ss:Color"/>;</xsl:if>
+        </xsl:if>
+        <xsl:if test="ss:Font/@ss:StrikeThrough=1 or ss:Font/@ss:Underline">
+			<xsl:choose>
+				<xsl:when test="ss:Font/@ss:StrikeThrough=1 and ss:Font/@ss:Underline='Single' and not(key('cell', @ss:ID)//html:S) and not(key('cell', @ss:ID)//html:U)">
+		text-decoration:line-through underline;
+			</xsl:when>
+			<xsl:when test="ss:Font/@ss:StrikeThrough=1 and ss:Font/@ss:Underline='Double' and not(key('cell', @ss:ID)//html:S) and not(key('cell', @ss:ID)//html:U)">
+		text-decoration:line-through underline double;<!-- closest match in css, strike-through effect is double line as well -->
+			</xsl:when>
+			<xsl:when test="ss:Font/@ss:StrikeThrough=1  and not(key('cell', @ss:ID)//html:S)">
+        text-decoration:line-through;</xsl:when>
+            <xsl:when test="ss:Font/@ss:Underline='Single' and not(key('cell', @ss:ID)//html:U)">
+        text-decoration:underline;</xsl:when>
+            <xsl:when test="ss:Font/@ss:Underline='Double' and not(key('cell', @ss:ID)//html:U)">
         text-decoration:underline;
-        text-decoration-style: double;</xsl:if>
-                <xsl:if test="ss:Font/@ss:FontName">
+        text-decoration-style: double;</xsl:when>
+			</xsl:choose>
+		</xsl:if>
+        <xsl:if test="ss:Font/@ss:FontName">
         font-family:<xsl:value-of select="ss:Font/@ss:FontName"/>
-                    <xsl:choose>
-                        <xsl:when test="ss:Font/@x:Family='Swiss'">, sans-serif</xsl:when>
-                        <xsl:when test="ss:Font/@x:Family='Roman'">, serif</xsl:when>
-                        <xsl:when test="ss:Font/@x:Family='Modern'">, monospace</xsl:when>
-                        <xsl:when test="ss:Font/@x:Family='Script'">, cursive</xsl:when>
-                        <xsl:when test="ss:Font/@x:Family='Decorative'">, fantasy</xsl:when>
-                    </xsl:choose>;</xsl:if>
+            <xsl:choose>
+                <xsl:when test="ss:Font/@x:Family='Swiss'">, sans-serif</xsl:when>
+                <xsl:when test="ss:Font/@x:Family='Roman'">, serif</xsl:when>
+                <xsl:when test="ss:Font/@x:Family='Modern'">, monospace</xsl:when>
+                <xsl:when test="ss:Font/@x:Family='Script'">, cursive</xsl:when>
+                <xsl:when test="ss:Font/@x:Family='Decorative'">, fantasy</xsl:when>
+            </xsl:choose>;
+        </xsl:if>
+        <xsl:choose>
+            <xsl:when test="ss:Font/@ss:Size">
                 <xsl:choose>
-                    <xsl:when test="ss:Font/@ss:Size">
-                        <xsl:choose>
-                            <xsl:when test="ss:Font/@ss:VerticalAlign">
-                                <xsl:if test="ss:Font/@ss:VerticalAlign='Superscript'">
-        vertical-align:super;
-        font-size:<xsl:value-of select="round(ss:Font/@ss:Size*8.3) div 10"/>pt;</xsl:if>
-                                <xsl:if test="ss:Font/@ss:VerticalAlign='Subscript'">
-        vertical-align:sub;
-        font-size:<xsl:value-of select="round(ss:Font/@ss:Size*8.3) div 10"/>pt;</xsl:if>
-                            </xsl:when>
-                            <xsl:otherwise>
-        font-size:<xsl:value-of select="ss:Font/@ss:Size"/>pt;</xsl:otherwise>
-                        </xsl:choose>
+                    <xsl:when test="ss:Font/@ss:VerticalAlign">
+                        <xsl:if test="not(key('cell', @ss:ID)//*[self::html:Sup or self::html:Sub])"><xsl:if test="ss:Font/@ss:VerticalAlign='Superscript'">vertical-align:super;
+        font-size:<xsl:value-of select="round(ss:Font/@ss:Size*8.3) div 10"/>pt;</xsl:if></xsl:if>
+                        <xsl:if test="not(key('cell', @ss:ID)//*[self::html:Sup or self::html:Sub])"><xsl:if test="ss:Font/@ss:VerticalAlign='Subscript'">vertical-align:sub;
+        font-size:<xsl:value-of select="round(ss:Font/@ss:Size*8.3) div 10"/>pt;</xsl:if></xsl:if>
                     </xsl:when>
-                    <xsl:otherwise>
-                        <xsl:if test="ss:Font/@ss:VerticalAlign='Superscript'">vertical-align:super;
-        font-size:0.83em;</xsl:if>
-                        <xsl:if test="ss:Font/@ss:VerticalAlign='Subscript'">vertical-align:sub;
-        font-size:0.83em;</xsl:if>
-                    </xsl:otherwise>
+                    <xsl:otherwise>font-size:<xsl:value-of select="ss:Font/@ss:Size"/>pt;</xsl:otherwise>
                 </xsl:choose>
             </xsl:when>
             <xsl:otherwise>
-    .<xsl:value-of select="@ss:ID"/><xsl:if  test="@ss:Name">, .<xsl:value-of select="translate(@ss:Name,translate(@ss:Name,'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',''),'')" /></xsl:if> {</xsl:otherwise>
+                <xsl:if test="ss:Font/@ss:VerticalAlign='Superscript'"><xsl:if test="not(key('cell', @ss:ID)//*[self::html:Sup or self::html:Sub])">vertical-align:super;</xsl:if>
+        font-size:0.83em;</xsl:if>
+                <xsl:if test="ss:Font/@ss:VerticalAlign='Subscript'"><xsl:if test="not(key('cell', @ss:ID)//*[self::html:Sup or self::html:Sub])">vertical-align:sub;</xsl:if>
+        font-size:0.83em;</xsl:if>
+            </xsl:otherwise>
         </xsl:choose>
-        <xsl:if test="ss:Alignment/@ss:Horizontal='Left'"><!-- cell formats: NO synchronisation with parent element in XSLT. CSS inheritance applies: some 'unset' attributes might be inherited from style template despite being switched off in cell-->
+        <!-- cell formats: NO synchronisation with parent element in XSLT. CSS inheritance applies: some 'unset' attributes might be inherited from style template despite being switched off in cell--><xsl:if test="ss:Alignment/@ss:Horizontal='Left'">
         text-align:left;</xsl:if>
         <xsl:if test="ss:Alignment/@ss:Horizontal='Center'">
         text-align:center;</xsl:if>
@@ -132,122 +158,13 @@
 									<xsl:value-of select="translate(key('style', key('style', @ss:StyleID)/@ss:Parent)/@ss:Name,translate(key('style', key('style', @ss:StyleID)/@ss:Parent)/@ss:Name,'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',''),'')"/>
 							</xsl:if>
 						</xsl:attribute>
-    	                <xsl:call-template name="bold-style" />
+    	                <xsl:apply-templates/>
              </xsl:element>
         </xsl:for-each>
-        </tr>
-        </xsl:for-each>
+        </tr></xsl:for-each>
         </table></xsl:for-each>
         </div>
         </xsl:for-each>
-</xsl:template>
-
-<xsl:template name="bold-style">
-    <xsl:choose>
-        <xsl:when test="(key('style', @ss:StyleID)/ss:Font/@ss:Bold=1) and (not(.//html:B))">
-            <b><xsl:call-template name="italic-style" /></b>
-        </xsl:when>
-        <xsl:otherwise><xsl:call-template name="italic-style" /></xsl:otherwise>
-    </xsl:choose>
-</xsl:template>
-
-<xsl:template name="italic-style">
-    <xsl:choose>
-        <xsl:when test="(key('style', @ss:StyleID)/ss:Font/@ss:Italic=1) and (not(.//html:I))">
-            <i><xsl:call-template name="color-style" /></i>
-        </xsl:when>
-        <xsl:otherwise><xsl:call-template name="color-style" /></xsl:otherwise>
-    </xsl:choose>
-</xsl:template>
-
-<!--
-Note bizarre logic: if there is no color-tag in child, then wrap in color-tag of style,
-but if there is a color-tag in child, then wrap in color-tag of DEFAULT-style (i.e. black).
-Since, for our purposes, default-style must not be marked, this implementation is markedly simpler:
-if any color-tag is present, no wrapping colour-tag is required.
--->
-<xsl:template name="color-style">
-    <xsl:choose>
-        <xsl:when test="(key('style', @ss:StyleID)/ss:Font/@ss:Color) and not(.//html:Font/@html:Color) and not(key('style', @ss:StyleID)/ss:Font/@ss:Color = key('style', 'Default')/ss:Font/@ss:Color)">
-            <span>
-                <xsl:attribute name="style">color:<xsl:value-of select="key('style', @ss:StyleID)/ss:Font/@ss:Color"/>;</xsl:attribute>
-                <xsl:call-template name="strikethrough-style" />
-            </span>
-        </xsl:when>
-        <xsl:otherwise><xsl:call-template name="strikethrough-style" /></xsl:otherwise>
-    </xsl:choose>
-</xsl:template>
-
-<xsl:template name="strikethrough-style">
-    <xsl:choose>
-        <xsl:when test="(key('style', @ss:StyleID)/ss:Font/@ss:StrikeThrough=1) and (not(.//html:S))">
-            <del><xsl:call-template name="underline-style" /></del>
-        </xsl:when>
-        <xsl:otherwise><xsl:call-template name="underline-style" /></xsl:otherwise>
-    </xsl:choose>
-</xsl:template>
-
-<xsl:template name="underline-style">
-    <xsl:choose>
-        <xsl:when test="(key('style', @ss:StyleID)/ss:Font/@ss:Underline) and (not(.//html:U))">
-            <u>
-                <xsl:if test="key('style', @ss:StyleID)/ss:Font/@ss:Underline='Double'">
-                <xsl:attribute name="style">text-decoration-style: double;</xsl:attribute>
-                </xsl:if>
-                <xsl:call-template name="fontname-style" />
-            </u>
-        </xsl:when>
-        <xsl:otherwise><xsl:call-template name="fontname-style" /></xsl:otherwise>
-    </xsl:choose>
-</xsl:template>
-
-<xsl:template name="fontname-style">
-    <xsl:choose>
-        <xsl:when test="(key('style', @ss:StyleID)/ss:Font/@ss:FontName) and not(key('style', @ss:StyleID)/ss:Font/@ss:FontName = key('style', 'Default')/ss:Font/@ss:FontName)">
-            <span>
-                <xsl:attribute name="style">font-family:<xsl:value-of select="key('style', @ss:StyleID)/ss:Font/@ss:FontName"/>
-                    <xsl:choose>
-                        <xsl:when test="key('style', @ss:StyleID)/ss:Font/@x:Family='Swiss'">,sans-serif</xsl:when>
-                        <xsl:when test="key('style', @ss:StyleID)/ss:Font/@x:Family='Roman'">,serif</xsl:when>
-                        <xsl:when test="key('style', @ss:StyleID)/ss:Font/@x:Family='Modern'">,monospace</xsl:when>
-                        <xsl:when test="key('style', @ss:StyleID)/ss:Font/@x:Family='Script'">,cursive</xsl:when>
-                        <xsl:when test="key('style', @ss:StyleID)/ss:Font/@x:Family='Decorative'">,fantasy</xsl:when>
-                    </xsl:choose>;</xsl:attribute>
-                <xsl:call-template name="fontsize-style" />
-            </span>
-        </xsl:when>
-        <xsl:otherwise><xsl:call-template name="fontsize-style" /></xsl:otherwise>
-    </xsl:choose>
-</xsl:template>
-
-<xsl:template name="fontsize-style">
-    <xsl:choose>
-        <xsl:when test="(key('style', @ss:StyleID)/ss:Font/@ss:Size) and not(key('style', @ss:StyleID)/ss:Font/@ss:Size = key('style', 'Default')/ss:Font/@ss:Size)">
-            <span>
-                <xsl:attribute name="style">font-size:<xsl:value-of select="key('style', @ss:StyleID)/ss:Font/@ss:Size"/>pt;</xsl:attribute>
-                <xsl:call-template name="superscript-style" />
-            </span>
-        </xsl:when>
-        <xsl:otherwise><xsl:call-template name="superscript-style" /></xsl:otherwise>
-    </xsl:choose>
-</xsl:template>
-
-<xsl:template name="superscript-style">
-    <xsl:choose>
-        <xsl:when test="(key('style', @ss:StyleID)/ss:Font/@ss:VerticalAlign='Superscript') and (not(.//html:Sup))">
-            <sup><xsl:call-template name="subscript-style" /></sup>
-        </xsl:when>
-        <xsl:otherwise><xsl:call-template name="subscript-style" /></xsl:otherwise>
-    </xsl:choose>
-</xsl:template>
-
-<xsl:template name="subscript-style">
-    <xsl:choose>
-        <xsl:when test="(key('style', @ss:StyleID)/ss:Font/@ss:VerticalAlign='Subscript') and (not(.//html:Sub))">
-            <sub><xsl:apply-templates/></sub>
-        </xsl:when>
-        <xsl:otherwise><xsl:apply-templates/></xsl:otherwise>
-    </xsl:choose>
 </xsl:template>
 
 <xsl:template match="node()">
