@@ -10,18 +10,37 @@ Make sure that the xsl-file is present in the same folder as the Excel-document 
 
 The XSL-Transformation used can be seen in action [here](https://xsltfiddle.liberty-development.net/jyH9rM8/2), a sample output can be found [here](https://jsfiddle.net/mheim/u5L63cg1/). Note that Excel's internal XML-representation does not specify `xml:space="preserve"`, even though this is required for the transformation to work. The script adds this Attribute before loading.
 
+## How do I use this?
+Simply load the script [Excel-RTF-to-HTML-via-XSLT.vbs](https://github.com/HeimMatthias/Excel-HTML-Tools-Public/blob/main/Excel-RTF-to-HTML-via-XSLT.vbs) into your Excel sheet. Or download the [Macro-enabled Excel-file](https://github.com/HeimMatthias/Excel-HTML-Tools-Public/blob/main/Excel-Macro-turn-RTF-formatted-cells-into-html.xlsm) from this repository. Save the XSL-Stylesheet you intend to use in the same folder (more on this below).
+
+*If you are a programmer* access the `function fnConvertXML2HTML()` in your own code, by passing on the xml from an Excel range. E.g. `Dim html As String: html = fnConvertXML2HTML(Range("A1:H8").Value(11))`.
+
+*If you are a user* simply use one of the helper-functions. Select the content you want to export as html and then [run one of the following macros](https://support.microsoft.com/en-us/office/run-a-macro-5e855fd2-02d1-45f5-90a3-50e645fe3155).
+* `copySelectionAsHTML`: this will copy your selection as html to the clipboard (note that you will need to insert this code into an html-boilerplate, since `html`- and `body`- tag are missing).
+* `saveSelectionAsHTML`: this will prompt you with a "Save As"-dialog where you can enter a filename for your html-file.
+* `turnSelectionRichTextIntoHtml`: this will turn each of the cells in the selection individually into html. *Beware that this will overwrite your data.* Use this if you plan to export the html of individual cells into a database, csv, conversion tool, etc.
+* `turnSelectionNumbersIntoText`: I **strongly advise** you to run this helper script before you export your html. *Beware that this will overwrite your data.* Doing so will allow you to export formatted numbers and empty cells. Only do not run this beforehand, if your Excel contains only formatted text and missing cells are not a problem for you.
+
+## What transformations are available?
+There are three different transformations available:
+* `excel-complex-style-transformation.xsl` [default]: This transformation will retain all of Excel's internal style sheets and use them to format the output. Only formatting inside the cell will be done with additional html-tags. If a cell deviates from its style-definition, the exceptions are defined in the cell's style attribute.
+* `excel-full-transformation.xsl` : This will only retain styles as a style sheet that concern the outer appearance of cells (i.e. borders, background-color, alignment). But all text-/character-/font-level formatting will be translated into html-tags
+* `excel-simple-style-transformation.xsl` : This transformation retains the style-sheets, but attempts to adjust the styles based on the overriding formats from the first cell that uses the style. This will produce cleaner output than the default transformation because the style-attribute of the cells are not used to define exceptions. However, it cannot resolve conflicts from multiple cells that use the same style. So beware when using it to export more than individual cells.
+* 
+If you use a different XSLT than the default `excel-complex-style-transformation.xsl`, you need to adjust the constant `xsltConversionFile` in the second line of the script.
+
 ## Limitations
-* Only plain-color cell-background is supported. Patterns could in theory be implemented, but would require svg-background patterns for all possibilites. I suggest to solve this yourself with class-styles. Gradient-backgrounds could easily be implemented in html, but unfortunately they are not represented in Excel's XML-cell representation.
-* Cell borders are represented if possible. Some border-styles (`DashDotDot`, `DashDot`, `SlantDashDot`) cannot be represented with CSS and receive their closest match.
-* Underline-color of characters does not always take the color of the character. This is because Excel treats this as a character-style, whereas html derives the underline-color always from the `currentColor` of the `U`-node.
-* Empty cells (and lines) are skipped over, and are not copied as cells to html. This may result in wrongly aligned columns in the output.
-* **Caveat** : Some on/off-Tags, such as `bold` (`underline` or `italics`), are difficult to implement when they derive from cell-styles (i.e. are set for the entire cell with exceptions on some characters added later). Excel checks in the rendering-process if there are individual bold elements inside the cell and then decides to use these tags to render bold passages, effectively disregarding the cell-style that calls for the entire cell to be in bold. This would not work in html.
-  
-  The XSLT checks whether the first cell using a specific style contains the corresponding tag and omits the css-entry in the style-tag. This is then not applied to all cells using this format.
-  
-  If this is a problem for you:
-  * either only apply the transformation to individual cells and combine them into a unified table yourself, but make sure to untangle conflicting class-styles from the different cell-transformations (which will still receive the same class-name)
-  * or adjust the XSLT to no longer remove these CSS-entries from the stylesheet but include checks to insert the negating style-entries into the cell's style-attribute (i.e. `<td style="font-weight:normal"><b>bold</b> and not so bold text combined</td>`. If this is a requirement for you, feel free to open an Issue, and I'll try to help out.
+There are some aspects of Excel's formatting options that cannot be reproduced with html and css. There are also some border-line cases that have not been implemented. Please check the [limitations in the issues](https://github.com/HeimMatthias/Excel-HTML-Tools-Public/issues?q=is%3Aissue+is%3Aopen+Limitations)
+
+There are, however, two **important limitations** to the html conversion:
+* **Empty cells** (and lines) **are skipped over**, and are not copied as cells to html. This may result in wrongly aligned columns in the output.
+* **Formatted numbers and formula** see their values copied without formatting.
+
+**Workaround:** Use the included script `turnSelectionNumbersIntoText()` to prepare your worksheet before exporting to html. This will turn formatted numbers and formula into text, but this is a destructive solution that cannot be undone. Be careful when saving your document.
 
 ## but what about Excel's html-Export
-By all means use Excel's html-Export if you need the full file exported as html and do not need to programmatically access the html from VBA. This tool will help you when you need quick html-code from individual ranges without going through the export which also separates css and html.
+By all means use Excel's html-Export if you need the full file exported as html and do not need to programmatically access the html from VBA. Excel's export separates css and html; but more importantly, it does not produce html that could easily be re-used or parsed. In Excel's native export all font and character formats are applied via `font`-tags with individual classnames.
+
+This XSL-transformation here will retain cleaner html tags such as `<i>, <b>, <del>, <sup>, <sub>, <u>` and processes the remaining formats inside `<span>`-tags with clean style-attributes. This means, that you can easily transfer the formatted output from Excel to another tool if you rely on the XSL-transformation of this tool, but not when you rely on Excel's output.
+
+If you need to convert a full worksheet, including several tables and need all formats to work, but do not intend to re-use or parse the content outside the exported data, Excel's native export should be the way forward for you.
